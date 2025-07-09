@@ -39,7 +39,7 @@ jobs:
         mkdir -p "$ANDROID_SDK_ROOT"
 
         # Download Android command-line tools
-        curl -fLo android-cmdline-tools.zip https://dl.google.com/android/repository/platform-tools-latest-linux.zip
+        curl -fLo android-cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
         unzip -q android-cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
 
         # Check the actual content of the unzipped directory
