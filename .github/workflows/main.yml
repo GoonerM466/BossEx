@@ -56,18 +56,17 @@ jobs:
         # Add command-line tools to PATH temporarily for this script to find sdkmanager
         export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
 
-        # Accept all SDK licenses explicitly
-        echo y | sdkmanager --licenses || true
-
-        # Install required Android SDK components
-        # Include build-tools 36.0.0 and platform-34 to cover Buildozer's potential demands
-        yes | sdkmanager \
+        # Accept all SDK licenses explicitly using printf
+        printf "y\n" | sdkmanager --licenses || true
+  
+        # Install required Android SDK components using printf
+        printf "y\n" | sdkmanager \
           "platform-tools" \
           "build-tools;33.0.2" \
           "platforms;android-33" \
           "build-tools;36.0.0" \
           "platforms;android-34" \
-          "ndk;25.2.9519653" # Add a common NDK version, Buildozer often needs a specific one
+          "ndk;25.2.9519653" \
           || true
 
         # Add core SDK paths to the GitHub Actions PATH for subsequent steps
