@@ -1,0 +1,48 @@
+name: Build Kivy Android APK
+
+on:
+  push:
+    branches:
+      - main # This workflow runs when you push to the 'main' branch
+  workflow_dispatch: # Allows you to manually trigger the workflow from GitHub Actions tab
+
+jobs:
+  build_android:
+    runs-on: ubuntu-latest # Use a fresh Ubuntu Linux environment
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4 # Get your project files from the repository
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10' # Use a common Python version for Buildozer
+
+    - name: Install Buildozer dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libssl-dev build-essential
+
+    - name: Install Python packages
+      run: |
+        pip install --upgrade pip
+        pip install buildozer
+
+    - name: Configure and Build Android APK
+      run: |
+        # Ensure buildozer.spec is correctly configured for your app:
+        # - title, package.name, package.domain
+        # - requirements (python3, kivy, plyer)
+        # - source.dir = .
+        # - android.add_src = bin
+        # - source.include_exts = py,kv,png,jpg,gif,json
+        # - android.api, android.minapi
+        # (The buildozer.spec you prepared should be correct for this)
+        buildozer android debug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: bin/*.apk # Buildozer outputs the APKs into a 'bin' folder (created by buildozer)
