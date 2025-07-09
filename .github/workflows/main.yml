@@ -28,6 +28,11 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install buildozer cython 
+
+    - name: Update Android SDK (for Aidl and other tools)
+      run: |
+        buildozer android update
+
     - name: Configure and Build Android APK
       run: |
         # Ensure buildozer.spec is correctly configured for your app:
