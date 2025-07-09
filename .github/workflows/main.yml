@@ -27,8 +27,7 @@ jobs:
     - name: Install Python packages
       run: |
         pip install --upgrade pip
-        pip install buildozer
-
+        pip install buildozer cython 
     - name: Configure and Build Android APK
       run: |
         # Ensure buildozer.spec is correctly configured for your app:
