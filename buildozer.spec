@@ -55,16 +55,16 @@ requirements = python3,kivy,plyer
 # presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) The category of the application:
-#       'game' or 'other'
+#        'game' or 'other'
 category = other
 
 # (list) List of target devices
-#       'samsung', 'motorola', 'htc', 'lg'
-#       'tablet', 'mobile'
+#        'samsung', 'motorola', 'htc', 'lg'
+#        'tablet', 'mobile'
 target.devices = mobile
 
 # (list) Plugins to install.
-#       This should be empty for most Kivy apps.
+#        This should be empty for most Kivy apps.
 # plugins =
 
 # (bool) Set fullscreen mode
@@ -86,13 +86,20 @@ android.api = 33
 android.minapi = 21
 
 # (int) Android NDK version. Default is usually fine.
+# We are providing a specific NDK path below, so this line can remain commented or removed.
 # android.ndk = 25b
 
 # (str) Android NDK path (if not using default)
-# android.ndk_path = /path/to/android-ndk-r25b
+# IMPORTANT: This path must match where your GitHub Actions workflow installs the NDK.
+android.ndk_path = /home/runner/work/BossEx/BossEx/android-sdk/ndk/25.2.9519653
 
 # (str) Android SDK path (if not using default)
-# android.sdk_path = /path/to/android-sdk
+# IMPORTANT: This path must match where your GitHub Actions workflow installs the SDK.
+android.sdk_path = /home/runner/work/BossEx/BossEx/android-sdk
+
+# (str) Android Build Tools version (e.g., '33.0.2')
+# Explicitly set to match the version we install and android.api.
+android.build_tools = 33.0.2
 
 # (list) Add directories or files to the android project's src directory.
 # This is CRITICAL for including your 'bin' folder modules.
@@ -151,3 +158,34 @@ warn_on_root = 1
 
 # (str) Path to build output (i.e. .apk, .aab, .ipa) storage
 # bin_dir = ./bin # This refers to the Buildozer's output 'bin' folder, not your source 'bin' folder
+
+#    -----------------------------------------------------------------------------
+#    List as sections
+#
+#    You can define all the "list" as [section:key].
+#    Each line will be considered as a option to the list.
+#    Let's take [app] / source.exclude_patterns.
+#    Instead of doing:
+#
+#[app]
+#source.exclude_patterns = license,data/audio/*.wav,data/images/original/*
+#
+#    This can be translated into:
+#
+#[app:source.exclude_patterns]
+#license
+#data/audio/*.wav
+#data/images/original/*
+#
+#
+#
+#    -----------------------------------------------------------------------------
+#    Profiles
+#
+#    You can extend section / key with a profile
+#    For example, you want to deploy a demo version of your application without
+#    HD content. You could first change the title to add "(demo)" in the name
+#    and extend the excluded directories to remove the HD content.
+#
+#[app@demo]
+#title = My Application...
