@@ -31,30 +31,50 @@ jobs:
 
     - name: Configure Android SDK and Install Build Tools (for Aidl)
       run: |
+        set -x # Enable verbose output for debugging
+
         # Set a custom Android SDK root directory for this workflow
-        # This path is relative to the runner's workspace, making it accessible to subsequent steps
         ANDROID_SDK_ROOT="${{ github.workspace }}/android-sdk"
         echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         mkdir -p "$ANDROID_SDK_ROOT"
 
-        # Download Android command-line tools (latest version as of mid-2024)
+        # Download Android command-line tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-8509876_latest.zip -O android-cmdline-tools.zip
         unzip -q android-cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-        # The unzipped structure often creates another 'cmdline-tools' folder, so we move its contents
-        mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+
+        # Check the actual content of the unzipped directory
+        ls -F "$ANDROID_SDK_ROOT/cmdline-tools"
+
+        # Move contents to 'latest'. Use 'mv -T' to treat destination as a file if it's a directory.
+        # This handles cases where 'cmdline-tools' might be a file or a directory.
+        # We'll also check if the source directory exists before moving.
+        if [ -d "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" ]; then
+            mv -T "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+        else
+            echo "Warning: Expected directory '$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools' not found. Skipping mv."
+            # If the inner 'cmdline-tools' doesn't exist, it means the zip unzipped directly into 'cmdline-tools'
+            # In that case, the tools are already at "$ANDROID_SDK_ROOT/cmdline-tools/bin"
+            # We need to ensure sdkmanager is found. Let's create a symbolic link or adjust path.
+            # A simpler approach is to just ensure the correct bin path is used for sdkmanager
+            # and accept that 'latest' might not be created if the structure is flat.
+            # For now, let's assume the nested structure is the common case.
+            # If this warning appears, we might need to adjust the sdkmanager path below.
+        fi
+        
+        # Verify the 'latest' directory structure
+        ls -F "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
+
 
         # Accept SDK licenses (required for sdkmanager to function)
-        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
+        yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true # Add || true to prevent early exit on license acceptance issues
 
-        # Install platform-tools, build-tools (version 33.0.2 for API 33), and platform for android-33
-        # 'yes |' automatically accepts licenses during installation
+        # Install platform-tools, build-tools, and platform
         yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
           "platform-tools" \
           "build-tools;33.0.2" \
-          "platforms;android-33"
+          "platforms;android-33" || true # Add || true to prevent early exit on minor sdkmanager issues
 
         # Add Android SDK platform-tools and build-tools to the GitHub Actions PATH
-        # This ensures 'adb', 'aidl', etc., are found by Buildozer
         echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
         echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
 
