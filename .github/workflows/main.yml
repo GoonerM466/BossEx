@@ -16,7 +16,44 @@ jobs:
     - name: Install required system packages
       run: |
         sudo apt update
-        sudo apt install -y libtinfo5 libncurses5
+        sudo apt install -y libtinfo5 libncurses5 wget unzip
+    
+    - name: Setup Android SDK and NDK cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.buildozer/android/platform/android-sdk
+          ~/.buildozer/android/platform/android-ndk-r25.2.9519653
+        key: android-sdk-ndk-${{ runner.os }}-v2
+        restore-keys: |
+          android-sdk-ndk-${{ runner.os }}-
+    
+    - name: Pre-download Android NDK (if not cached)
+      run: |
+        NDK_DIR="$HOME/.buildozer/android/platform"
+        NDK_ZIP="android-ndk-r25.2.9519653-linux.zip"
+        NDK_URL="https://dl.google.com/android/repository/${NDK_ZIP}"
+        
+        mkdir -p "$NDK_DIR"
+        cd "$NDK_DIR"
+        
+        if [ ! -d "android-ndk-r25.2.9519653" ]; then
+          echo "Downloading Android NDK..."
+          # Use wget with retry and resume capabilities
+          wget --continue --tries=3 --timeout=30 "${NDK_URL}" -O "${NDK_ZIP}"
+          
+          if [ -f "${NDK_ZIP}" ]; then
+            echo "Extracting NDK..."
+            unzip -q "${NDK_ZIP}"
+            rm "${NDK_ZIP}"
+            echo "NDK installation complete"
+          else
+            echo "Failed to download NDK"
+            exit 1
+          fi
+        else
+          echo "NDK already exists, skipping download"
+        fi
     
     - name: Build with Buildozer
       uses: digreatbrian/buildozer-action@main
