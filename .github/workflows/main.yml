@@ -9,7 +9,7 @@ on:
 jobs:
   build_android:
     runs-on: ubuntu-latest # Use a fresh Ubuntu Linux environment
-    env: # <---- ADD THIS BLOCK
+    env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
       ANDROID_HOME: ${{ github.workspace }}/android-sdk # Some tools might prefer ANDROID_HOME
 
@@ -25,7 +25,7 @@ jobs:
     - name: Install Buildozer dependencies
       run: |
         sudo apt-get update
-        # Added 'automake' here for robust Autotools support
+        # Ensure all necessary build tools are installed
         sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libssl-dev build-essential
 
     - name: Install Python packages
@@ -37,7 +37,6 @@ jobs:
       run: |
         set -x # Enable verbose output for debugging
 
-        # ANDROID_SDK_ROOT is now defined globally in the 'env' block, no need to redefine here
         mkdir -p "$ANDROID_SDK_ROOT"
 
         curl -fLo android-cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
@@ -53,18 +52,15 @@ jobs:
         
         export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
 
-        # *** NEW ADDITION START ***
         # Create compatibility symlinks for Buildozer's old SDK structure expectations
         echo "Creating compatibility symlinks for sdkmanager and avdmanager..."
         mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
         ln -s "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
-        # Also link avdmanager if it exists, as Buildozer might look for it too
         if [ -f "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" ]; then
             ln -s "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" "$ANDROID_SDK_ROOT/tools/bin/avdmanager"
         else
             echo "avdmanager not found in cmdline-tools/latest/bin, skipping symlink."
         fi
-        # *** NEW ADDITION END ***
 
         printf "y\n" | sdkmanager --licenses || true
 
@@ -86,20 +82,19 @@ jobs:
         echo "--- PATH after SDK setup ---"
         echo $PATH
 
-    - name: Configure and Build Android APK
-      run: |
-        # Ensure buildozer.spec is correctly configured for your app:
-        # - title, package.name, package.domain
-        # - requirements (python3, kivy, plyer)
-        # - source.dir = .
-        # - android.add_src = bin
-        # - source.include_exts = py,kv,png,jpg,gif,json
-        # - android.api, android.minapi
-        # (The buildozer.spec you prepared should be correct for this)
-        buildozer android debug
+    # --- START: Split Buildozer Steps ---
+    - name: Clean Buildozer Project
+      run: buildozer android clean
+
+    - name: Prepare Android Build Environment (recipes, including libffi)
+      run: buildozer android prepare
+
+    - name: Build Android APK
+      run: buildozer android build
+    # --- END: Split Buildozer Steps ---
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
-        path: bin/*.apk # Buildozer outputs the APKs into a 'bin' folder (created by buildozer)
+        path: bin/*.apk
