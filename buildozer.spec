@@ -53,10 +53,19 @@ fullscreen = 1
 p4a.bootstrap = sdl2
 
 # (str) python-for-android branch to use
-p4a.branch = master
+# Changed from 'master' to 'develop' for potentially more current recipes
+p4a.branch = develop
 
 # (str) python-for-android git url
 p4a.url = https://github.com/kivy/python-for-android.git
+
+# (str) Explicitly set Python version for p4a to build the app with.
+# This aligns with the Python 3.11 detected in your logcat.
+p4a.python_version = 3.11
+
+# (bool) Force a complete rebuild of the python-for-android distribution.
+# Useful after changing NDK, Python version, or p4a.branch.
+android.force_build = True
 
 # (str) The directory in which python-for-android should look for your own build recipes
 # p4a.local_recipes = ./p4a-recipes
