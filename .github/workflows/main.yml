@@ -25,6 +25,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf automake libtool m4 pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libssl-dev build-essential
+        # Install additional autotools packages to fix libffi build
+        sudo apt-get install -y libtool-bin autotools-dev
     
     - name: Install Python packages
       run: |
@@ -88,32 +90,94 @@ jobs:
         rm -rf .buildozer
         buildozer android clean || true
 
+    # Create or update buildozer.spec with proper configuration
+    - name: Configure buildozer.spec
+      run: |
+        # Check if buildozer.spec exists, if not create it
+        if [ ! -f buildozer.spec ]; then
+          echo "Creating buildozer.spec..."
+          buildozer init
+        fi
+        
+        # Backup original buildozer.spec
+        cp buildozer.spec buildozer.spec.bak
+        
+        # Update buildozer.spec with proper configuration
+        cat > buildozer.spec << 'EOF'
+        [app]
+        title = BossEx
+        package.name = bossex
+        package.domain = org.example
+        
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,atlas,json,txt
+        
+        version = 0.1
+        requirements = python3,kivy,plyer,android
+        
+        [buildozer]
+        log_level = 2
+        
+        [app:android]
+        gradle_dependencies = 
+        
+        # Android specific
+        android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+        android.api = 33
+        android.minapi = 21
+        android.ndk = 25.2.9519653
+        android.sdk = 33
+        android.accept_sdk_license = True
+        android.arch = arm64-v8a,armeabi-v7a
+        
+        # p4a specific options
+        p4a.bootstrap = sdl2
+        p4a.branch = master
+        p4a.source_dir = 
+        p4a.local_recipes = 
+        
+        # Fix for libffi build issues
+        p4a.setup_py = False
+        p4a.whitelist_src = 
+        EOF
+
     # Configure and Build Android APK with verbose output
     - name: Configure and Build Android APK
       run: |
         export PYTHONUNBUFFERED=1
+        export ANDROID_SDK_ROOT="${{ github.workspace }}/android-sdk"
+        export ANDROID_HOME="${{ github.workspace }}/android-sdk"
+        export ANDROIDSDK="${{ github.workspace }}/android-sdk"
+        export ANDROIDNDK="${{ github.workspace }}/android-sdk/ndk/25.2.9519653"
+        export ANDROIDAPI="33"
+        export ANDROIDMINAPI="21"
+        
+        # Set environment variables to help with libffi build
+        export LIBTOOL_VERSION=$(libtool --version | head -n1 | sed 's/.*) //g')
+        export ACLOCAL_PATH="/usr/share/aclocal:$ACLOCAL_PATH"
+        
+        echo "Building with clean environment..."
         buildozer android debug --verbose || {
-          echo "Build failed. Attempting alternative approach..."
+          echo "Build failed. Checking for specific libffi issue..."
           
-          # Try building with specific p4a bootstrap
+          # Try to regenerate autotools files in libffi if it exists
+          if [ -d ".buildozer/android/platform/python-for-android/dist/dists/*/build/other_builds/libffi" ]; then
+            echo "Attempting to fix libffi autotools configuration..."
+            cd .buildozer/android/platform/python-for-android/dist/dists/*/build/other_builds/libffi/*/libffi
+            autoreconf -fiv || true
+            cd - 
+          fi
+          
+          # Try alternative build approach
+          echo "Attempting alternative build..."
           buildozer android debug --verbose --p4a-bootstrap sdl2 || {
-            echo "Alternative build also failed. Trying with updated requirements..."
+            echo "Alternative build also failed. Trying with minimal requirements..."
             
-            # Update buildozer.spec to use newer versions
-            if [ -f buildozer.spec ]; then
-              # Backup original
-              cp buildozer.spec buildozer.spec.bak
-              
-              # Update requirements to exclude problematic packages
-              sed -i 's/requirements = .*/requirements = python3,kivy,plyer,android/' buildozer.spec
-              
-              # Try one more time
-              buildozer android debug --verbose
-            else
-              echo "No buildozer.spec found. Creating default one..."
-              buildozer init
-              buildozer android debug --verbose
-            fi
+            # Update requirements to minimal set
+            sed -i 's/requirements = .*/requirements = python3,kivy/' buildozer.spec
+            
+            # Try one more time
+            buildozer android debug --verbose
           }
         }
     
@@ -133,4 +197,5 @@ jobs:
           .buildozer/android/platform/python-for-android/dist/dists/*/build.log
           .buildozer/android/platform/python-for-android/dist/dists/*/build.log.*
           .buildozer/android/app/build/outputs/logs/
+          .buildozer/android/platform/python-for-android/dist/dists/*/build/other_builds/libffi/*/libffi/config.log
       if: failure()
