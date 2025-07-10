@@ -79,7 +79,7 @@ orientation = portrait,landscape
 
 # (int) Android SDK target (e.g. 27 for Android 8.1, 28 for Android 9, 31 for Android 12)
 # It's recommended to use a recent stable SDK version. Let's aim for 33.
-android.api = 33
+android.api = 21
 
 # (int) Minimum Android SDK API level (the oldest Android version your app will support)
 # Generally 21 (Android 5.0 Lollipop) or 23 (Android 6.0 Marshmallow) for broad compatibility.
@@ -88,6 +88,9 @@ android.minapi = 21
 # (int) Android NDK version. Default is usually fine.
 # We are providing a specific NDK path below, so this line can remain commented or removed.
 android.ndk = 23b
+
+# (int) Android NDK API to use. This is the minimum API your app will support, it should usually match android.minapi.
+android.ndk_api = 21
 
 # (str) Android NDK path (if not using default)
 # IMPORTANT: This path must match where your GitHub Actions workflow installs the NDK.
