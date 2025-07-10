@@ -35,7 +35,7 @@ jobs:
         path: |
           ~/.buildozer/android/platform/android-sdk
           ~/.buildozer/android/platform/android-ndk-r25c
-        key: android-sdk-ndk-${{ runner.os }}-v5
+        key: android-sdk-ndk-${{ runner.os }}-v6
         restore-keys: |
           android-sdk-ndk-${{ runner.os }}-
     
@@ -52,13 +52,12 @@ jobs:
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
           
-          # Proper directory structure for cmdline-tools
+          # Create proper directory structure for cmdline-tools
           mkdir -p cmdline-tools/latest
           mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
-          # Move the bin, lib directories to the correct location
-          if [ -d "cmdline-tools/bin" ]; then
-            mv cmdline-tools/* cmdline-tools/latest/
-          fi
+          
+          # Clean up any remaining files
+          rmdir cmdline-tools 2>/dev/null || true
         fi
         
         # Set environment variables
@@ -83,8 +82,14 @@ jobs:
             "platforms;android-21"
         fi
         
-        # Verify aidl is available
+        # Create legacy tools directory structure that buildozer expects
+        mkdir -p "$SDK_DIR/tools/bin"
+        ln -sf "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" "$SDK_DIR/tools/bin/sdkmanager"
+        
+        # Verify installations
+        echo "Verifying SDK installation..."
         ls -la "$SDK_DIR/build-tools/33.0.2/"
+        ls -la "$SDK_DIR/tools/bin/"
     
     - name: Setup Android NDK
       run: |
@@ -124,7 +129,7 @@ jobs:
         export PYTHONUNBUFFERED=1
         export ANDROID_SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
         export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
-        export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/33.0.2"
+        export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/33.0.2:$ANDROID_SDK_ROOT/tools/bin"
         
         # Build the APK
         buildozer android debug
