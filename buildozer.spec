@@ -33,6 +33,9 @@ source.include_exts = py,kv,png,jpg,gif,json
 # Do not prefix with './'
 #source.exclude_patterns = license,images/*/*.jpg
 
+# Force build True or False
+android.force_build = True
+
 # (str) Application versioning (method 1)
 version = 1.0.0
 
@@ -146,6 +149,9 @@ log_level = 2
 
 # (str) The password for the release key alias.
 # p4a.release_keyalias_passphrase = your_password
+
+# (str) python-for-android branch to use, defaults to master
+p4a.branch = develop
 
 
 [buildozer]
