@@ -82,16 +82,11 @@ jobs:
         echo "--- PATH after SDK setup ---"
         echo $PATH
 
-    # --- START: Split Buildozer Steps ---
-    - name: Clean Buildozer Project
-      run: buildozer android clean
-
     - name: Prepare Android Build Environment (recipes, including libffi)
       run: buildozer android prepare
 
     - name: Build Android APK
       run: buildozer android build
-    # --- END: Split Buildozer Steps ---
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
