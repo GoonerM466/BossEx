@@ -91,10 +91,13 @@ jobs:
         echo "--- PATH after SDK setup ---"
         echo $PATH
 
-    # --- REVERTED TO SINGLE DEBUG COMMAND ---
+    # --- ADDED CLEAN STEP BEFORE DEBUG ---
+    - name: Clean previous Buildozer artifacts
+      run: python -m buildozer android clean
+
     - name: Configure and Build Android APK
       run: python -m buildozer android debug
-    # --- END REVERTED ---
+    # --- END ADDED CLEAN STEP ---
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
