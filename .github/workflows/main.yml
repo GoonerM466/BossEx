@@ -90,56 +90,16 @@ jobs:
         rm -rf .buildozer
         buildozer android clean || true
 
-    # Create or update buildozer.spec with proper configuration
-    - name: Configure buildozer.spec
+    # Backup buildozer.spec for safety
+    - name: Backup buildozer.spec
       run: |
-        # Check if buildozer.spec exists, if not create it
-        if [ ! -f buildozer.spec ]; then
-          echo "Creating buildozer.spec..."
-          buildozer init
+        if [ -f buildozer.spec ]; then
+          cp buildozer.spec buildozer.spec.bak
+          echo "Backed up existing buildozer.spec"
+        else
+          echo "No buildozer.spec found - please ensure it exists in your repository"
+          exit 1
         fi
-        
-        # Backup original buildozer.spec
-        cp buildozer.spec buildozer.spec.bak
-        
-        # Update buildozer.spec with proper configuration
-        cat > buildozer.spec << 'EOF'
-        [app]
-        title = BossEx
-        package.name = bossex
-        package.domain = org.example
-        
-        source.dir = .
-        source.include_exts = py,png,jpg,kv,atlas,json,txt
-        
-        version = 0.1
-        requirements = python3,kivy,plyer,android
-        
-        [buildozer]
-        log_level = 2
-        
-        [app:android]
-        gradle_dependencies = 
-        
-        # Android specific
-        android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
-        android.api = 33
-        android.minapi = 21
-        android.ndk = 25.2.9519653
-        android.sdk = 33
-        android.accept_sdk_license = True
-        android.arch = arm64-v8a,armeabi-v7a
-        
-        # p4a specific options
-        p4a.bootstrap = sdl2
-        p4a.branch = master
-        p4a.source_dir = 
-        p4a.local_recipes = 
-        
-        # Fix for libffi build issues
-        p4a.setup_py = False
-        p4a.whitelist_src = 
-        EOF
 
     # Configure and Build Android APK with verbose output
     - name: Configure and Build Android APK
