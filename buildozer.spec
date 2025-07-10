@@ -59,16 +59,12 @@ p4a.branch = master
 p4a.url = https://github.com/kivy/python-for-android.git
 
 # (str) The directory in which python-for-android should look for your own build recipes
-p4a.local_recipes = ./p4a-recipes
+# p4a.local_recipes = ./p4a-recipes
 
 # (str) Filename to the hook for p4a
-p4a.hook = ./p4a-hook.py
+# p4a.hook = ./p4a-hook.py
 
-# (str) Bootstrap to use for new builds
-p4a.bootstrap = sdl2
-
-# (str) The Android arch to build for
-android.arch = arm64-v8a
+# Note: android.arch is deprecated, use android.archs instead
 
 # (bool) Whether to use the gradle wrapper
 android.gradle_wrapper = 1
