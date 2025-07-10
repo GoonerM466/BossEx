@@ -24,7 +24,7 @@ android.api = 33
 # (int) Minimum Android SDK API level
 android.minapi = 21
 # (str) Android NDK version
-android.ndk = 25.2.9519653
+android.ndk = 25c
 # (int) Android NDK API to use
 android.ndk_api = 21
 # (list) Architecture specification
