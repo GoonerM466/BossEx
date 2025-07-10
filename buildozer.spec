@@ -87,7 +87,7 @@ android.minapi = 21
 
 # (int) Android NDK version. Default is usually fine.
 # We are providing a specific NDK path below, so this line can remain commented or removed.
-# android.ndk = 25b
+android.ndk = 23b
 
 # (str) Android NDK path (if not using default)
 # IMPORTANT: This path must match where your GitHub Actions workflow installs the NDK.
