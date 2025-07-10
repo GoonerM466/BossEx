@@ -33,10 +33,16 @@ jobs:
         pip install --upgrade pip
         pip install --upgrade buildozer cython
 
-    # --- NEW STEP ADDED HERE ---
     - name: Check Buildozer Version
       run: buildozer --version
-    # --- END NEW STEP ---
+
+    # --- NEW DIAGNOSTIC STEPS ---
+    - name: Locate Buildozer Executable
+      run: which buildozer
+
+    - name: Show Buildozer Package Details
+      run: pip show buildozer
+    # --- END NEW DIAGNOSTIC STEPS ---
 
     - name: Configure Android SDK and Install Build Tools (for Aidl and Licenses)
       run: |
