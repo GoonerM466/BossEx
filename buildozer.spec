@@ -14,8 +14,7 @@ android.force_build = True
 # (str) Application versioning
 version = 1.0.0
 # (list) Application requirements
-# FIXED: Removed libffi from requirements as it's built automatically
-# Added android requirement for permissions
+# Use newer libffi version or exclude it to use system version
 requirements = python3,kivy,plyer,android
 # (str) The category of the application
 category = other
@@ -55,8 +54,8 @@ android.gradle_dependencies =
 android.add_compile_options = -fPIC
 
 # Python-for-android specific configurations
-# (str) python-for-android branch to use - using master for stability
-p4a.branch = master
+# (str) python-for-android branch to use - using develop for latest fixes
+p4a.branch = develop
 # (str) Python-for-android bootstrap
 p4a.bootstrap = sdl2
 # (bool) Setup.py handling for p4a
@@ -69,10 +68,14 @@ p4a.local_recipes =
 p4a.whitelist_src = 
 # (str) Blacklist source extensions
 p4a.blacklist_src = 
-# (list) Additional environment variables for build
-p4a.add_env = LIBTOOL_VERSION=2.4.6
+# (list) Additional environment variables for build - Add autotools fixes
+p4a.add_env = LIBTOOL_VERSION=2.4.6,AUTOTOOLS_BUILD=x86_64-linux-gnu,AUTOTOOLS_HOST=aarch64-linux-android
 # (str) Additional build options for libffi compatibility
 p4a.add_build_options = --libffi-dir=/usr/lib/x86_64-linux-gnu
+# (str) Force specific libffi version or recipe
+p4a.recipe_blacklist = 
+# (str) Use specific python-for-android commit that has libffi fixes
+p4a.commit = 
 
 [buildozer]
 # (int) Log level
