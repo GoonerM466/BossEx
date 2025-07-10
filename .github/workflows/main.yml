@@ -31,8 +31,12 @@ jobs:
     - name: Install Python packages
       run: |
         pip install --upgrade pip
-        # --- MODIFIED LINE BELOW: Ensure buildozer is upgraded ---
         pip install --upgrade buildozer cython
+
+    # --- NEW STEP ADDED HERE ---
+    - name: Check Buildozer Version
+      run: buildozer --version
+    # --- END NEW STEP ---
 
     - name: Configure Android SDK and Install Build Tools (for Aidl and Licenses)
       run: |
