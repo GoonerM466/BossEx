@@ -23,21 +23,22 @@ jobs:
       with:
         path: |
           ~/.buildozer/android/platform/android-sdk
-          ~/.buildozer/android/platform/android-ndk-r25.2.9519653
-        key: android-sdk-ndk-${{ runner.os }}-v2
+          ~/.buildozer/android/platform/android-ndk-r25c
+        key: android-sdk-ndk-${{ runner.os }}-v3
         restore-keys: |
           android-sdk-ndk-${{ runner.os }}-
     
     - name: Pre-download Android NDK (if not cached)
       run: |
         NDK_DIR="$HOME/.buildozer/android/platform"
-        NDK_ZIP="android-ndk-r25.2.9519653-linux.zip"
+        NDK_ZIP="android-ndk-r25c-linux.zip"
         NDK_URL="https://dl.google.com/android/repository/${NDK_ZIP}"
+        NDK_FOLDER="android-ndk-r25c"
         
         mkdir -p "$NDK_DIR"
         cd "$NDK_DIR"
         
-        if [ ! -d "android-ndk-r25.2.9519653" ]; then
+        if [ ! -d "$NDK_FOLDER" ]; then
           echo "Downloading Android NDK..."
           # Use wget with retry and resume capabilities
           wget --continue --tries=3 --timeout=30 "${NDK_URL}" -O "${NDK_ZIP}"
