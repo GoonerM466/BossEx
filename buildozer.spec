@@ -124,7 +124,7 @@ android.debug = 1
 
 # (str) Log level for the build process (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 # Use 'debug' for more verbose output if you hit issues.
-log_level = info
+log_level = 2
 
 # --- Signing and Release (for app stores) ---
 # For development (using `buildozer android debug`), Buildozer automatically
@@ -148,7 +148,7 @@ log_level = info
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
-log_level = info # This controls Buildozer's own output, not the Android build logs
+log_level = 2 # This controls Buildozer's own output, not the Android build logs
 
 # (int) Display warning if buildozer is run as root (0 = False, 1 = True)
 warn_on_root = 1
