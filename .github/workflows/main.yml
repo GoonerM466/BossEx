@@ -13,20 +13,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Install required system packages
+      run: |
+        sudo apt update
+        sudo apt install -y libtinfo5 libncurses5
+    
     - name: Build with Buildozer
       uses: digreatbrian/buildozer-action@main
       with:
-        # Command to run (buildozer android debug is the default)
-        command: buildozer android debug
-        # Path to buildozer.spec file (optional, defaults to ./buildozer.spec)
-        buildozer_spec_path: ./buildozer.spec
-        # Repository token for private dependencies (optional)
-        repository_token: ${{ secrets.GITHUB_TOKEN }}
-        # Additional environment variables (optional)
-        buildozer_env: |
-          PYTHONUNBUFFERED=1
-          ANDROID_SDK_ROOT=/home/runner/android-sdk
-          ANDROID_HOME=/home/runner/android-sdk
+        # Use the correct parameter names
+        python-version: '3.8'
+        work-dir: '.'
+        buildozer-cmd: 'buildozer android debug'
+      env:
+        PYTHONUNBUFFERED: 1
+        ANDROID_SDK_ROOT: /home/runner/android-sdk
+        ANDROID_HOME: /home/runner/android-sdk
     
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
