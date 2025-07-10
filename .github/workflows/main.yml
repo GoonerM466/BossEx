@@ -2,49 +2,42 @@ name: Build Kivy Android APK
 on:
   push:
     branches:
-      - main # This workflow runs when you push to the 'main' branch
-  workflow_dispatch: # Allows you to manually trigger the workflow from GitHub Actions tab
+      - main
+  workflow_dispatch:
 
 jobs:
   build_android:
-    runs-on: ubuntu-latest # Use a fresh Ubuntu Linux environment
+    runs-on: ubuntu-latest
     env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk # Some tools might prefer ANDROID_HOME
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Get your project files from the repository
+      uses: actions/checkout@v4
     
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10' # Use a common Python version for Buildozer
+        python-version: '3.10'
     
     - name: Install Buildozer dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf automake libtool m4 pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libssl-dev build-essential
         # Install additional autotools packages to fix libffi build
-        sudo apt-get install -y libtool-bin autotools-dev
+        sudo apt-get install -y libtool-bin autotools-dev gettext
+        # Install newer autotools to fix LT_SYS_SYMBOL_USCORE issue
+        sudo apt-get install -y autopoint
     
     - name: Install Python packages
       run: |
         pip install --upgrade pip
         pip install --upgrade buildozer cython
     
-    - name: Check Buildozer Version
-      run: buildozer --version
-    
-    - name: Locate Buildozer Executable
-      run: which buildozer
-    
-    - name: Show Buildozer Package Details
-      run: pip show buildozer
-    
-    - name: Configure Android SDK and Install Build Tools (for Aidl and Licenses)
+    - name: Configure Android SDK and Install Build Tools
       run: |
-        set -x # Enable verbose output for debugging
+        set -x
         mkdir -p "$ANDROID_SDK_ROOT"
         curl -fLo android-cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
         unzip -q android-cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
@@ -57,14 +50,10 @@ jobs:
         fi
         
         export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
-        # Create compatibility symlinks for Buildozer's old SDK structure expectations
-        echo "Creating compatibility symlinks for sdkmanager and avdmanager..."
         mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
         ln -s "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
         if [ -f "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" ]; then
             ln -s "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" "$ANDROID_SDK_ROOT/tools/bin/avdmanager"
-        else
-            echo "avdmanager not found in cmdline-tools/latest/bin, skipping symlink."
         fi
         printf "y\n" | sdkmanager --licenses || true
         printf "y\n" | sdkmanager \
@@ -78,19 +67,13 @@ jobs:
         echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
         echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> "$GITHUB_PATH"
         echo "$ANDROID_SDK_ROOT/build-tools/36.0.0" >> "$GITHUB_PATH"
-        echo "--- Installed SDK Components ---"
-        sdkmanager --list || true
-        echo "--- PATH after SDK setup ---"
-        echo $PATH
 
-    # Clean buildozer cache to force fresh build
     - name: Clean Buildozer Cache
       run: |
         rm -rf ~/.buildozer
         rm -rf .buildozer
         buildozer android clean || true
 
-    # Backup buildozer.spec for safety
     - name: Backup buildozer.spec
       run: |
         if [ -f buildozer.spec ]; then
@@ -101,7 +84,6 @@ jobs:
           exit 1
         fi
 
-    # Configure and Build Android APK with verbose output
     - name: Configure and Build Android APK
       run: |
         export PYTHONUNBUFFERED=1
@@ -116,39 +98,20 @@ jobs:
         export LIBTOOL_VERSION=$(libtool --version | head -n1 | sed 's/.*) //g')
         export ACLOCAL_PATH="/usr/share/aclocal:$ACLOCAL_PATH"
         
+        # Add autotools environment variables
+        export AUTOTOOLS_BUILD=x86_64-linux-gnu
+        export AUTOTOOLS_HOST=aarch64-linux-android
+        
         echo "Building with clean environment..."
-        buildozer android debug --verbose || {
-          echo "Build failed. Checking for specific libffi issue..."
-          
-          # Try to regenerate autotools files in libffi if it exists
-          if [ -d ".buildozer/android/platform/python-for-android/dist/dists/*/build/other_builds/libffi" ]; then
-            echo "Attempting to fix libffi autotools configuration..."
-            cd .buildozer/android/platform/python-for-android/dist/dists/*/build/other_builds/libffi/*/libffi
-            autoreconf -fiv || true
-            cd - 
-          fi
-          
-          # Try alternative build approach
-          echo "Attempting alternative build..."
-          buildozer android debug --verbose --p4a-bootstrap sdl2 || {
-            echo "Alternative build also failed. Trying with minimal requirements..."
-            
-            # Update requirements to minimal set
-            sed -i 's/requirements = .*/requirements = python3,kivy/' buildozer.spec
-            
-            # Try one more time
-            buildozer android debug --verbose
-          }
-        }
+        buildozer android debug --verbose
     
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
         path: bin/*.apk
-      if: always()  # Upload even if build partially failed but APK was created
+      if: always()
 
-    # Upload logs for debugging if build fails
     - name: Upload Build Logs
       uses: actions/upload-artifact@v4
       with:
