@@ -36,13 +36,11 @@ jobs:
     - name: Check Buildozer Version
       run: buildozer --version
 
-    # --- NEW DIAGNOSTIC STEPS ---
     - name: Locate Buildozer Executable
       run: which buildozer
 
     - name: Show Buildozer Package Details
       run: pip show buildozer
-    # --- END NEW DIAGNOSTIC STEPS ---
 
     - name: Configure Android SDK and Install Build Tools (for Aidl and Licenses)
       run: |
@@ -93,11 +91,13 @@ jobs:
         echo "--- PATH after SDK setup ---"
         echo $PATH
 
+    # --- MODIFIED: Calling buildozer via python -m ---
     - name: Prepare Android Build Environment (recipes, including libffi)
-      run: buildozer android prepare
+      run: python -m buildozer android prepare
 
     - name: Build Android APK
-      run: buildozer android build
+      run: python -m buildozer android build
+    # --- END MODIFIED ---
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
