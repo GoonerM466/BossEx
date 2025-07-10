@@ -91,13 +91,10 @@ jobs:
         echo "--- PATH after SDK setup ---"
         echo $PATH
 
-    # --- MODIFIED: Calling buildozer via python -m ---
-    - name: Prepare Android Build Environment (recipes, including libffi)
-      run: python -m buildozer android prepare
-
-    - name: Build Android APK
-      run: python -m buildozer android build
-    # --- END MODIFIED ---
+    # --- REVERTED TO SINGLE DEBUG COMMAND ---
+    - name: Configure and Build Android APK
+      run: python -m buildozer android debug
+    # --- END REVERTED ---
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
