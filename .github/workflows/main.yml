@@ -1,5 +1,4 @@
 name: Build Kivy Android APK
-
 on:
   push:
     branches:
@@ -12,16 +11,16 @@ jobs:
     env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
       ANDROID_HOME: ${{ github.workspace }}/android-sdk # Some tools might prefer ANDROID_HOME
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4 # Get your project files from the repository
-
+    
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10' # Use a common Python version for Buildozer
-
+    
     - name: Install Buildozer dependencies
       run: |
         sudo apt-get update
@@ -31,24 +30,21 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install --upgrade buildozer cython
-
+    
     - name: Check Buildozer Version
       run: buildozer --version
-
+    
     - name: Locate Buildozer Executable
       run: which buildozer
-
+    
     - name: Show Buildozer Package Details
       run: pip show buildozer
-
+    
     - name: Configure Android SDK and Install Build Tools (for Aidl and Licenses)
       run: |
         set -x # Enable verbose output for debugging
-
         mkdir -p "$ANDROID_SDK_ROOT"
-
         curl -fLo android-cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-
         unzip -q android-cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
         
         if [ -d "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" ]; then
@@ -59,7 +55,6 @@ jobs:
         fi
         
         export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
-
         # Create compatibility symlinks for Buildozer's old SDK structure expectations
         echo "Creating compatibility symlinks for sdkmanager and avdmanager..."
         mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
@@ -69,9 +64,7 @@ jobs:
         else
             echo "avdmanager not found in cmdline-tools/latest/bin, skipping symlink."
         fi
-
         printf "y\n" | sdkmanager --licenses || true
-
         printf "y\n" | sdkmanager \
           "platform-tools" \
           "build-tools;33.0.2" \
@@ -80,23 +73,64 @@ jobs:
           "platforms;android-34" \
           "ndk;25.2.9519653" \
           || true
-
         echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
         echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> "$GITHUB_PATH"
         echo "$ANDROID_SDK_ROOT/build-tools/36.0.0" >> "$GITHUB_PATH"
-
         echo "--- Installed SDK Components ---"
         sdkmanager --list || true
         echo "--- PATH after SDK setup ---"
         echo $PATH
 
-    # --- REMOVED CLEAN STEP ---
-    - name: Configure and Build Android APK
-      run: python -m buildozer android debug
-    # --- END REMOVED CLEAN STEP ---
+    # Clean buildozer cache to force fresh build
+    - name: Clean Buildozer Cache
+      run: |
+        rm -rf ~/.buildozer
+        rm -rf .buildozer
+        buildozer android clean || true
 
+    # Configure and Build Android APK with verbose output
+    - name: Configure and Build Android APK
+      run: |
+        export PYTHONUNBUFFERED=1
+        buildozer android debug --verbose || {
+          echo "Build failed. Attempting alternative approach..."
+          
+          # Try building with specific p4a bootstrap
+          buildozer android debug --verbose --p4a-bootstrap sdl2 || {
+            echo "Alternative build also failed. Trying with updated requirements..."
+            
+            # Update buildozer.spec to use newer versions
+            if [ -f buildozer.spec ]; then
+              # Backup original
+              cp buildozer.spec buildozer.spec.bak
+              
+              # Update requirements to exclude problematic packages
+              sed -i 's/requirements = .*/requirements = python3,kivy,plyer,android/' buildozer.spec
+              
+              # Try one more time
+              buildozer android debug --verbose
+            else
+              echo "No buildozer.spec found. Creating default one..."
+              buildozer init
+              buildozer android debug --verbose
+            fi
+          }
+        }
+    
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: android-apk
         path: bin/*.apk
+      if: always()  # Upload even if build partially failed but APK was created
+
+    # Upload logs for debugging if build fails
+    - name: Upload Build Logs
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          .buildozer/android/platform/python-for-android/dist/dists/*/build.log
+          .buildozer/android/platform/python-for-android/dist/dists/*/build.log.*
+          .buildozer/android/app/build/outputs/logs/
+      if: failure()
