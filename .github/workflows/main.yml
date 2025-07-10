@@ -8,102 +8,25 @@ on:
 jobs:
   build_android:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Build with Buildozer
+      uses: digreatbrian/buildozer-action@main
       with:
-        python-version: '3.10'
-    
-    - name: Install Buildozer dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf automake libtool m4 pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libssl-dev build-essential
-        # Install additional autotools packages to fix libffi build
-        sudo apt-get install -y libtool-bin autotools-dev gettext
-        # Install newer autotools to fix LT_SYS_SYMBOL_USCORE issue
-        sudo apt-get install -y autopoint
-    
-    - name: Install Python packages
-      run: |
-        pip install --upgrade pip
-        pip install --upgrade buildozer cython
-    
-    - name: Configure Android SDK and Install Build Tools
-      run: |
-        set -x
-        mkdir -p "$ANDROID_SDK_ROOT"
-        curl -fLo android-cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-        unzip -q android-cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-        
-        if [ -d "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" ]; then
-            mv -T "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-        else
-            echo "Warning: Nested cmdline-tools directory not found. Assuming flat unzip. Will attempt to link 'latest'."
-            ln -s "$ANDROID_SDK_ROOT/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-        fi
-        
-        export PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin"
-        mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
-        ln -s "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
-        if [ -f "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" ]; then
-            ln -s "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager" "$ANDROID_SDK_ROOT/tools/bin/avdmanager"
-        fi
-        printf "y\n" | sdkmanager --licenses || true
-        printf "y\n" | sdkmanager \
-          "platform-tools" \
-          "build-tools;33.0.2" \
-          "platforms;android-33" \
-          "build-tools;36.0.0" \
-          "platforms;android-34" \
-          "ndk;25.2.9519653" \
-          || true
-        echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-        echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> "$GITHUB_PATH"
-        echo "$ANDROID_SDK_ROOT/build-tools/36.0.0" >> "$GITHUB_PATH"
-
-    - name: Clean Buildozer Cache
-      run: |
-        rm -rf ~/.buildozer
-        rm -rf .buildozer
-        buildozer android clean || true
-
-    - name: Backup buildozer.spec
-      run: |
-        if [ -f buildozer.spec ]; then
-          cp buildozer.spec buildozer.spec.bak
-          echo "Backed up existing buildozer.spec"
-        else
-          echo "No buildozer.spec found - please ensure it exists in your repository"
-          exit 1
-        fi
-
-    - name: Configure and Build Android APK
-      run: |
-        export PYTHONUNBUFFERED=1
-        export ANDROID_SDK_ROOT="${{ github.workspace }}/android-sdk"
-        export ANDROID_HOME="${{ github.workspace }}/android-sdk"
-        export ANDROIDSDK="${{ github.workspace }}/android-sdk"
-        export ANDROIDNDK="${{ github.workspace }}/android-sdk/ndk/25.2.9519653"
-        export ANDROIDAPI="33"
-        export ANDROIDMINAPI="21"
-        
-        # Set environment variables to help with libffi build
-        export LIBTOOL_VERSION=$(libtool --version | head -n1 | sed 's/.*) //g')
-        export ACLOCAL_PATH="/usr/share/aclocal:$ACLOCAL_PATH"
-        
-        # Add autotools environment variables
-        export AUTOTOOLS_BUILD=x86_64-linux-gnu
-        export AUTOTOOLS_HOST=aarch64-linux-android
-        
-        echo "Building with clean environment..."
-        buildozer android debug --verbose
+        # Command to run (buildozer android debug is the default)
+        command: buildozer android debug
+        # Path to buildozer.spec file (optional, defaults to ./buildozer.spec)
+        buildozer_spec_path: ./buildozer.spec
+        # Repository token for private dependencies (optional)
+        repository_token: ${{ secrets.GITHUB_TOKEN }}
+        # Additional environment variables (optional)
+        buildozer_env: |
+          PYTHONUNBUFFERED=1
+          ANDROID_SDK_ROOT=/home/runner/android-sdk
+          ANDROID_HOME=/home/runner/android-sdk
     
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
@@ -111,7 +34,7 @@ jobs:
         name: android-apk
         path: bin/*.apk
       if: always()
-
+    
     - name: Upload Build Logs
       uses: actions/upload-artifact@v4
       with:
@@ -120,5 +43,4 @@ jobs:
           .buildozer/android/platform/python-for-android/dist/dists/*/build.log
           .buildozer/android/platform/python-for-android/dist/dists/*/build.log.*
           .buildozer/android/app/build/outputs/logs/
-          .buildozer/android/platform/python-for-android/dist/dists/*/build/other_builds/libffi/*/libffi/config.log
       if: failure()
